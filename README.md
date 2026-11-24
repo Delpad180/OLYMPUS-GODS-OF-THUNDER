@@ -6,14 +6,15 @@ Android slot-style game prototype inspired by Greek mythology, built with Kotlin
 
 The enhanced implementation is on the `feature/olympus-enhanced` branch.
 
-- Portrait-first interface with a dark temple palette and gold accents.
-- 6 × 5 gemstone board with animated vertical reel presentation.
+- Reworked portrait interface inspired by the supplied Gates of Olympus reference: purple sunset sky, golden temple atmosphere, ornate gold reel frame and jewel-style symbols.
+- Six-column, five-row reel board.
+- Longer reel spins with continuous movement, linear high-speed phase, staggered column starts and progressive deceleration.
 - Adjustable virtual bet (5–100 credits).
 - Virtual credit balance, persisted across activity recreation.
 - Session spin counter and best-win record.
 - Tiered reward multipliers based on matching-symbol count.
-- In-game paytable explaining the reward tiers.
-- Credit reset control for continued testing.
+- Optional double-reward mode.
+- In-game paytable and credit reset control.
 - Android APK build through GitHub Actions.
 
 ## Reward table
