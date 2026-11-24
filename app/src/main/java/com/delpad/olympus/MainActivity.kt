@@ -16,6 +16,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,8 +53,11 @@ class MainActivity : ComponentActivity() {
 private fun OlympusGame() {
     var grid by remember { mutableStateOf(newGrid()) }
     var spinning by remember { mutableStateOf(false) }
-    var balance by remember { mutableIntStateOf(1000) }
-    var bet by remember { mutableIntStateOf(10) }
+    var balance by rememberSaveable { mutableIntStateOf(1000) }
+    var bet by rememberSaveable { mutableIntStateOf(10) }
+    var spins by rememberSaveable { mutableIntStateOf(0) }
+    var bestWin by rememberSaveable { mutableIntStateOf(0) }
+    var showPaytable by remember { mutableStateOf(false) }
     var lastWin by remember { mutableIntStateOf(0) }
     var message by remember { mutableStateOf("QUE LOS DIOSES TE ACOMPAÑEN") }
     val offsets = remember { List(6) { Animatable(0f) } }
@@ -78,11 +84,22 @@ private fun OlympusGame() {
             delay(2600)
             grid = newGrid()
             val counts = grid.flatten().groupingBy { it }.eachCount()
-            val matches = counts.filter { it.value >= 8 }.keys
-            if (matches.isNotEmpty()) {
-                lastWin = bet * (2 + matches.size * 2)
+            spins += 1
+            val bestMatch = counts.values.maxOrNull() ?: 0
+            val multiplier = when {
+                bestMatch >= 15 -> 30
+                bestMatch >= 12 -> 12
+                bestMatch == 11 -> 8
+                bestMatch == 10 -> 5
+                bestMatch == 9 -> 3
+                bestMatch == 8 -> 2
+                else -> 0
+            }
+            if (multiplier > 0) {
+                lastWin = bet * multiplier
                 balance += lastWin
-                message = "¡VICTORIA! +$lastWin CRÉDITOS"
+                bestWin = maxOf(bestWin, lastWin)
+                message = if (multiplier >= 12) "¡BENDICIÓN DIVINA! +$lastWin CRÉDITOS" else "¡VICTORIA! +$lastWin CRÉDITOS"
             } else {
                 message = "LA SUERTE ESPERA SU MOMENTO"
             }
@@ -104,7 +121,12 @@ private fun OlympusGame() {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     StatPanel("CRÉDITOS", balance.toString())
                     StatPanel("APUESTA", bet.toString())
-                    StatPanel("ÚLTIMO PREMIO", lastWin.toString())
+                    StatPanel("MEJOR PREMIO", bestWin.toString())
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("PARTIDAS: $spins", color = Color(0xFFB9A5D8), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text("TABLA DE PREMIOS  ⓘ", color = Gold, fontSize = 10.sp, fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clickable { showPaytable = true }.padding(6.dp))
                 }
                 Text("EL TEMPLO DEL OLIMPO", color = Gold, fontSize = 13.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp)
                 ReelBoard(grid = grid, offsets = offsets, spinning = spinning, modifier = Modifier.weight(1f).fillMaxWidth())
@@ -122,7 +144,28 @@ private fun OlympusGame() {
                 ) {
                     Text(if (spinning) "GIRANDO..." else "⚡  GIRAR  ⚡", color = Color(0xFF24102F), fontSize = 20.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
                 }
-                Text("SIMULACIÓN · CRÉDITOS VIRTUALES · SIN DINERO REAL", color = Color(0xFF8C7BAA), fontSize = 8.sp, letterSpacing = 1.sp)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("SIMULACIÓN · SIN DINERO REAL", color = Color(0xFF8C7BAA), fontSize = 8.sp, letterSpacing = 1.sp)
+                    Text("REINICIAR CRÉDITOS", color = Color(0xFFD7C4FF), fontSize = 9.sp, fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clickable(enabled = !spinning) { balance = 1000; message = "TU TESORO HA SIDO RESTAURADO" }.padding(6.dp))
+                }
+            }
+            if (showPaytable) {
+                AlertDialog(
+                    onDismissRequest = { showPaytable = false },
+                    containerColor = Color(0xFF211238),
+                    title = { Text("BENDICIONES DEL OLIMPO", color = Gold, fontWeight = FontWeight.Black) },
+                    text = {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Los premios se calculan según la cantidad del mismo símbolo en el tablero.", color = Color(0xFFE2D7F2), fontSize = 12.sp)
+                            listOf("8 símbolos  ·  x2", "9 símbolos  ·  x3", "10 símbolos · x5", "11 símbolos · x8", "12–14 símbolos · x12", "15 o más · x30").forEach {
+                                Text(it, color = Gold, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            }
+                            Text("Todos los créditos son virtuales y no tienen valor monetario.", color = Color(0xFFB9A5D8), fontSize = 10.sp)
+                        }
+                    },
+                    confirmButton = { TextButton(onClick = { showPaytable = false }) { Text("ENTENDIDO", color = Gold) } }
+                )
             }
         }
     }
